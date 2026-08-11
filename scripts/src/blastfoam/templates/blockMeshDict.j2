@@ -1,0 +1,57 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.3.0                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+convertToMeters 1;
+
+vertices
+(
+{% for v in vertices %}
+( {{ v[0] }} {{ v[1] }} {{ v[2] }} ) // {{ loop.index0 }}
+{% endfor %}
+);
+
+blocks
+(
+{% for b in blocks %}
+hex ({{ b.vertices | join(' ') }}) ({{ b.ijk | join(' ') }}) simpleGrading (1 1 1)
+{% endfor %}
+);
+
+edges
+(
+);
+
+boundary
+(
+{% for patch_name, patch_data in boundaries.items() %}
+    {{ patch_name }}
+    {
+        type {{ patch_data.type }};
+        faces
+        (
+        {% for face in patch_data.faces %}
+        ({{ face | join(' ') }})
+        {% endfor %}
+        );
+    }
+{% endfor %}
+);
+
+mergePatchPairs
+(
+);
+
+// ************************************************************************* //

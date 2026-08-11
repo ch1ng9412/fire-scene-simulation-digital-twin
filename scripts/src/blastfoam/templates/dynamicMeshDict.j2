@@ -1,0 +1,56 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  9 / BlastFOAM                         |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      dynamicMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dynamicFvMesh   {{ amr_mesh_class | default('adaptiveFvMesh') }};
+
+{{ 'adaptiveFvMeshCoeffs' if amr_mesh_class == 'adaptiveFvMesh' else 'dynamicRefineFvMeshCoeffs' }}
+{
+    refineInterval      {{ refine_interval | default(3) }};
+    unrefineInterval    {{ unrefine_interval | default(5) }};
+
+    {% if amr_mesh_class == 'adaptiveFvMesh' %}
+    errorEstimator      {{ error_estimator | default('densityGradient') }};
+    lowerRefineLevel    {{ lower_refine_level | default('0.1') }};
+    unrefineLevel       {{ unrefine_level | default('0.05') }};
+    {% else %}
+    field               {{ refine_field | default('p') }};
+    lowerRefineLevel    {{ lower_refine_level | default('1.05e5') }}; // 105 kPa (略高於大氣壓)
+    upperRefineLevel    {{ upper_refine_level | default('1e10') }};
+    unrefineLevel       {{ unrefine_level | default('1.02e5') }};     // 102 kPa (波前離開後還原)
+    {% endif %}
+
+    nBufferLayers       {{ n_buffer_layers | default(2) }};
+    maxRefinement       {{ max_refinement | default(3) }}; // 1m背景對半切3次 -> 0.125m高解析
+
+    maxCells            {{ max_cells | default(4000000) }};
+
+    correctFluxes
+    (
+        (phi none)
+        (rhoPhi_{{ air_phase_name | default('air') }} none)
+        (rhoPhi_{{ exp_phase_name | default('explosive') }} none)
+        {% if extra_phases is defined %}
+        {% for phase in extra_phases %}
+        (rhoPhi_{{ phase }} none)
+        {% endfor %}
+        {% endif %}
+    );
+
+    dumpLevel           {{ dump_level | default('true') }};
+}
+
+// ************************************************************************* //
